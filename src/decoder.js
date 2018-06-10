@@ -54,11 +54,15 @@ const processAtom = (atom) => {
 
 module.exports = class Decoder {
   constructor(buffer, checkVersion = true) {
-    this.view = new DataView(buffer.buffer || buffer);
+    buffer = new Uint8Array(buffer);
+    this.view = new DataView(buffer.buffer);
     this.offset = 0;
     this.decoder = new TextDecoder('utf8');
-    if (checkVersion && this.read8() !== FORMAT_VERSION) {
-      throw new Error('invalid version header');
+    if (checkVersion) {
+      const version = this.read8();
+      if (version !== FORMAT_VERSION) {
+        throw new Error('invalid version header');
+      }
     }
   }
 

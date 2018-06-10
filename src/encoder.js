@@ -8,8 +8,8 @@ const {
 
   NEW_FLOAT_EXT,
   // BIT_BINARY_EXT,
-  // SMALL_INTEGER_EXT,
-  // INTEGER_EXT,
+  SMALL_INTEGER_EXT,
+  INTEGER_EXT,
   // FLOAT_EXT,
   ATOM_EXT,
   // REFERENCE_EXT,
@@ -18,9 +18,9 @@ const {
   // SMALL_TUPLE_EXT,
   // LARGE_TUPLE_EXT,
   NIL_EXT,
-  STRING_EXT,
+  // STRING_EXT,
   LIST_EXT,
-  // BINARY_EXT,
+  BINARY_EXT,
   SMALL_BIG_EXT,
   LARGE_BIG_EXT,
   // NEW_FUN_EXT,
@@ -34,11 +34,12 @@ const {
 
 /* eslint-disable no-plusplus */
 
-const LARGE_BIG_CUTOFF = (2n ** 64n) - 1n;
+const MAX_INT32 = (2 ** 31) - 1;
+const BUFFER_SIZE = 1024 * 1024;
 
 class Encoder {
   constructor() {
-    this.buffer = new Uint8Array(1024 * 1024);
+    this.buffer = new Uint8Array(BUFFER_SIZE);
     this.view = new DataView(this.buffer.buffer);
     this.encoder = new TextEncoder();
     this.buffer[0] = FORMAT_VERSION;
@@ -47,8 +48,14 @@ class Encoder {
 
   appendAtom(atom) {
     const a = this.encoder.encode(atom);
-    this.buffer[this.offset++] = atom.length > 4 ? ATOM_EXT : SMALL_ATOM_EXT;
-    this.buffer[this.offset++] = a.length;
+    if (atom.length > 4) {
+      this.buffer[this.offset++] = ATOM_EXT;
+      this.view.setUint16(this.offset, a.length);
+      this.offset += 2;
+    } else {
+      this.buffer[this.offset++] = SMALL_ATOM_EXT;
+      this.buffer[this.offset++] = a.length;
+    }
     for (let i = 0; i < a.length; i += 1) {
       this.buffer[this.offset++] = a[i];
     }
@@ -66,41 +73,66 @@ class Encoder {
     }
 
     if (typeof value === 'number') {
-      this.buffer[this.offset++] = NEW_FLOAT_EXT;
-      this.view.setFloat64(this.offset, value);
-      this.offset += 8;
+      if (value % 1 === 0) {
+        if (value >= 0 && value < 256) {
+          this.buffer[this.offset++] = SMALL_INTEGER_EXT;
+          this.buffer[this.offset++] = value;
+        } else if (value < MAX_INT32) {
+          this.buffer[this.offset++] = INTEGER_EXT;
+          this.view.setUint32(this.offset, value);
+          this.offset += 4;
+        } else {
+          this.buffer[this.offset++] = SMALL_BIG_EXT;
+
+          const byteCountIndex = this.offset;
+          this.offset++;
+
+          const sign = value > 0 ? 0 : 1;
+          this.buffer[this.offset++] = sign;
+
+          let ull = sign === 1 ? -value : value;
+          let byteCount = 0;
+          while (ull > 0) {
+            byteCount += 1;
+            this.buffer[this.offset++] = ull & 0xFF;
+            ull >>= 8;
+          }
+          this.buffer[byteCountIndex] = byteCount;
+        }
+      } else {
+        this.buffer[this.offset++] = NEW_FLOAT_EXT;
+        this.view.setFloat64(this.offset, value);
+        this.offset += 8;
+      }
       return;
     }
 
     if (typeof value === 'bigint') { // eslint-disable-line valid-typeof
+      this.buffer[this.offset++] = LARGE_BIG_EXT;
+
+      const byteCountIndex = this.offset;
+      this.offset += 4;
+
       const sign = value > 0n ? 0 : 1;
+      this.buffer[this.offset++] = sign;
+
       let ull = sign === 1 ? -value : value;
-      let bytesEnc = 0;
-      const chunks = [];
+      let byteCount = 0;
       while (ull > 0) {
-        chunks[bytesEnc++] = ull & 0xFFn;
+        byteCount += 1;
+        this.buffer[this.offset++] = Number(ull & 0xFFn);
         ull >>= 8n;
       }
-      if (value > LARGE_BIG_CUTOFF || value < -LARGE_BIG_CUTOFF) {
-        this.buffer[this.offset++] = LARGE_BIG_EXT;
-        this.view.setUint32(this.offset, bytesEnc);
-        this.offset += 4;
-      } else {
-        this.buffer[this.offset++] = SMALL_BIG_EXT;
-        this.view.setUint8(this.offset, bytesEnc);
-        this.offset += 1;
-      }
-      this.buffer[this.offset++] = sign;
-      chunks.forEach((chunk) => {
-        this.buffer[this.offset++] = Number(chunk);
-      });
+
+      this.view.setUint32(byteCountIndex, byteCount);
+      this.offset += 4;
       return;
     }
 
     if (typeof value === 'string') {
-      this.buffer[this.offset++] = STRING_EXT;
-      this.view.setUint16(this.offset, value.length);
-      this.offset += 2;
+      this.buffer[this.offset++] = BINARY_EXT;
+      this.view.setUint32(this.offset, value.length);
+      this.offset += 4;
       const a = this.encoder.encode(value);
       for (let i = 0; i < a.length; i += 1) {
         this.buffer[this.offset++] = a[i];
