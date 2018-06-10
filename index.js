@@ -1,23 +1,19 @@
 'use strict';
 
-const { pack, unpack } = require('bindings')('earl');
+const Encoder = require('./src/encoder');
+const Decoder = require('./src/decoder');
 
 const kPackCustom = Symbol('earl.pack.custom');
-const symbolToString = (s) => s.toString().slice(7, -1);
 
 module.exports = {
   pack: (v) => {
-    if (v[kPackCustom]) {
-      return pack(v[kPackCustom]);
-    }
-    return pack(v, symbolToString);
+    const encoder = new Encoder();
+    encoder.pack(v[kPackCustom] ? v[kPackCustom] : v);
+    return encoder.buffer.slice(0, encoder.offset);
   },
   unpack: (v) => {
-    if (typeof v !== 'object') {
-      throw new Error('Cannot unpack a non-object.');
-    }
-
-    return unpack(v);
+    const decoder = new Decoder(v);
+    return decoder.unpack();
   },
 };
 

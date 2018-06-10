@@ -1,3 +1,0 @@
-[submodule "deps/erlpack"]
-	path = deps/erlpack
-	url = https://github.com/discordapp/erlpack

@@ -1,6 +1,7 @@
 # earl
 
-JavaScript wrapper for [erlpack][]
+
+Pure JavaScript ETF encoder/decoder
 
 ```js
 const { pack, unpack } = require('earl');
