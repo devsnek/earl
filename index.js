@@ -8,7 +8,7 @@ const kPackCustom = Symbol('earl.pack.custom');
 module.exports = {
   pack: (v) => {
     const encoder = new Encoder();
-    encoder.pack(v[kPackCustom] ? v[kPackCustom] : v);
+    encoder.pack(v != null && v[kPackCustom] ? v[kPackCustom] : v);
     return encoder.buffer.slice(0, encoder.offset);
   },
   unpack: (v) => {
