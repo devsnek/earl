@@ -56,6 +56,7 @@ module.exports = class Decoder {
   constructor(buffer, checkVersion = true) {
     this.view = new DataView(buffer.buffer || buffer);
     this.offset = 0;
+    this.decoder = new TextDecoder('utf8');
     if (checkVersion && this.read8() !== FORMAT_VERSION) {
       throw new Error('invalid version header');
     }
@@ -92,7 +93,7 @@ module.exports = class Decoder {
     for (let i = 0; i < length; i += 1) {
       a[i] = this.read8();
     }
-    return new TextDecoder('utf8').decode(a);
+    return this.decoder.decode(a);
   }
 
   decodeArray(length) {

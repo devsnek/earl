@@ -40,12 +40,13 @@ class Encoder {
   constructor() {
     this.buffer = new Uint8Array(1024 * 1024);
     this.view = new DataView(this.buffer.buffer);
+    this.encoder = new TextEncoder();
     this.buffer[0] = FORMAT_VERSION;
     this.offset = 1;
   }
 
   appendAtom(atom) {
-    const a = new TextEncoder().encode(atom);
+    const a = this.encoder.encode(atom);
     this.buffer[this.offset++] = atom.length > 4 ? ATOM_EXT : SMALL_ATOM_EXT;
     this.buffer[this.offset++] = a.length;
     for (let i = 0; i < a.length; i += 1) {
@@ -100,7 +101,7 @@ class Encoder {
       this.buffer[this.offset++] = STRING_EXT;
       this.view.setUint16(this.offset, value.length);
       this.offset += 2;
-      const a = new TextEncoder().encode(value);
+      const a = this.encoder.encode(value);
       for (let i = 0; i < a.length; i += 1) {
         this.buffer[this.offset++] = a[i];
       }
