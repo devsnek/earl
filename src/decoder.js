@@ -106,6 +106,47 @@ module.exports = class Decoder {
     return array;
   }
 
+  decodeBigNumber(digits) {
+    const sign = this.read8();
+
+    let value = 0;
+    let b = 1;
+
+    for (let i = 0; i < digits; i += 1) {
+      const digit = this.read8();
+      value += digit * b;
+      b <<= 8;
+    }
+
+    if (digits < 4) {
+      if (sign === 0) {
+        return value;
+      }
+
+      const isSignBitAvailable = (value & (1 << 31)) === 0;
+      if (isSignBitAvailable) {
+        return -value;
+      }
+    }
+
+    return sign === 0 ? value : -value;
+  }
+
+  decodeBigBigInt(digits) {
+    const sign = this.read8();
+
+    let value = 0n;
+    let b = 1n;
+
+    for (let i = 0; i < digits; i += 1) {
+      const digit = this.read8();
+      value += BigInt(digit) * b;
+      b <<= 8n;
+    }
+
+    return sign === 0 ? value : -value;
+  }
+
   unpack() {
     const type = this.read8();
     switch (type) {
@@ -151,42 +192,11 @@ module.exports = class Decoder {
       }
       case SMALL_BIG_EXT: {
         const digits = this.read8();
-        const sign = this.read8();
-
-        let value = 0;
-        let b = 1;
-
-        for (let i = 0; i < digits; i += 1) {
-          const digit = this.read8();
-          value += digit * b;
-          b <<= 8;
-        }
-
-        if (sign === 0) {
-          return value;
-        }
-
-        const isSignBitAvailable = (value & (1 << 31)) === 0;
-        if (isSignBitAvailable) {
-          return -value;
-        }
-
-        return sign === 0 ? value : -value;
+        return digits >= 8 ? this.decodeBigBigInt(digits) : this.decodeBigNumber(digits);
       }
       case LARGE_BIG_EXT: {
         const digits = this.read32();
-        const sign = this.read8();
-
-        let value = 0n;
-        let b = 1n;
-
-        for (let i = 0; i < digits; i += 1) {
-          const digit = this.read8();
-          value += BigInt(digit) * b;
-          b <<= 8n;
-        }
-
-        return sign === 0 ? value : -value;
+        return this.decodeBigBigInt(digits);
       }
       case REFERENCE_EXT:
         return {
