@@ -84,8 +84,6 @@ module.exports = class Decoder {
     return val;
   }
 
-  read64() {}
-
   readDouble() {
     const val = this.view.getFloat64(this.offset);
     this.offset += 8;
@@ -106,21 +104,6 @@ module.exports = class Decoder {
       array[i] = this.unpack();
     }
     return array;
-  }
-
-  decodeBig(digits) {
-    const sign = this.read8();
-
-    let value = 0n;
-    let b = 1n;
-
-    for (let i = 0; i < digits; i += 1) {
-      const digit = this.read8();
-      value += BigInt(digit) * b;
-      b <<= 8n;
-    }
-
-    return sign === 0 ? value : -value;
   }
 
   unpack() {
@@ -166,10 +149,45 @@ module.exports = class Decoder {
         const length = this.read32();
         return this.readString(length);
       }
-      case SMALL_BIG_EXT:
-        return this.decodeBig(this.read8());
-      case LARGE_BIG_EXT:
-        return this.decodeBig(this.read32());
+      case SMALL_BIG_EXT: {
+        const digits = this.read8();
+        const sign = this.read8();
+
+        let value = 0;
+        let b = 1;
+
+        for (let i = 0; i < digits; i += 1) {
+          const digit = this.read8();
+          value += digit * b;
+          b <<= 8;
+        }
+
+        if (sign === 0) {
+          return value;
+        }
+
+        const isSignBitAvailable = (value & (1 << 31)) === 0;
+        if (isSignBitAvailable) {
+          return -value;
+        }
+
+        return sign === 0 ? value : -value;
+      }
+      case LARGE_BIG_EXT: {
+        const digits = this.read32();
+        const sign = this.read8();
+
+        let value = 0n;
+        let b = 1n;
+
+        for (let i = 0; i < digits; i += 1) {
+          const digit = this.read8();
+          value += BigInt(digit) * b;
+          b <<= 8n;
+        }
+
+        return sign === 0 ? value : -value;
+      }
       case REFERENCE_EXT:
         return {
           node: this.unpack(),

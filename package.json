@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {},
   "devDependencies": {
-    "jest": "^23.1.0"
+    "erlpack": "github:discordjs/erlpack#feature/bigint"
   },
   "scripts": {
     "test": "node ./node_modules/.bin/jest"
