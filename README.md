@@ -12,7 +12,7 @@ console.log(unpack(buf)); // { a : 1n }
 ```
 
 ```js
-const { pack } = require('earl');
+const { pack, unpack } = require('earl');
 
 class User {
   constructor(data) {
