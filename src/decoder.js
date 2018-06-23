@@ -192,7 +192,7 @@ module.exports = class Decoder {
       }
       case SMALL_BIG_EXT: {
         const digits = this.read8();
-        return digits >= 8 ? this.decodeBigBigInt(digits) : this.decodeBigNumber(digits);
+        return digits >= 7 ? this.decodeBigBigInt(digits) : this.decodeBigNumber(digits);
       }
       case LARGE_BIG_EXT: {
         const digits = this.read32();
