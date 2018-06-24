@@ -35,15 +35,33 @@ const {
 /* eslint-disable no-plusplus */
 
 const MAX_INT32 = (2 ** 31) - 1;
-const BUFFER_SIZE = 1024 * 1024;
+const BUFFER_CHUNK = 2048;
 
 class Encoder {
   constructor() {
-    this.buffer = new Uint8Array(BUFFER_SIZE);
+    this.buffer = new Uint8Array(BUFFER_CHUNK);
     this.view = new DataView(this.buffer.buffer);
     this.encoder = new TextEncoder();
     this.buffer[0] = FORMAT_VERSION;
-    this.offset = 1;
+    this._offset = 1;
+  }
+
+  grow() {
+    const old = this.buffer;
+    this.buffer = new Uint8Array(old.length + BUFFER_CHUNK);
+    this.buffer.set(old);
+    this.view = new DataView(this.buffer.buffer);
+  }
+
+  set offset(v) {
+    this._offset = v;
+    if (this._offset >= this.buffer.length) {
+      this.grow();
+    }
+  }
+
+  get offset() {
+    return this._offset;
   }
 
   appendAtom(atom) {
@@ -56,9 +74,11 @@ class Encoder {
       this.buffer[this.offset++] = SMALL_ATOM_EXT;
       this.buffer[this.offset++] = a.length;
     }
-    for (let i = 0; i < a.length; i += 1) {
-      this.buffer[this.offset++] = a[i];
+    while (this.offset + a.length > this.buffer.length) {
+      this.grow();
     }
+    this.buffer.set(a, this.offset);
+    this.offset += a.length;
   }
 
   pack(value) {
@@ -134,9 +154,11 @@ class Encoder {
       this.view.setUint32(this.offset, value.length);
       this.offset += 4;
       const a = this.encoder.encode(value);
-      for (let i = 0; i < a.length; i += 1) {
-        this.buffer[this.offset++] = a[i];
+      while (this.offset + a.length > this.buffer.length) {
+        this.grow();
       }
+      this.buffer.set(a, this.offset);
+      this.offset += a.length;
       return;
     }
 

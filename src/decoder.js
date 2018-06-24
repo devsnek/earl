@@ -1,5 +1,8 @@
 'use strict';
 
+// eslint-disable-next-line no-undef
+const { TextDecoder } = typeof window !== 'undefined' ? window : require('util');
+
 const {
   FORMAT_VERSION,
 
@@ -28,9 +31,6 @@ const {
   // FUN_EXT,
   // COMPRESSED,
 } = require('./constants');
-
-// eslint-disable-next-line no-undef
-const TextDecoder = typeof window !== 'undefined' ? window.TextDecoder : require('util').TextDecoder;
 
 const processAtom = (atom) => {
   if (!atom) {
