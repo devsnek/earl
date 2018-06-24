@@ -46,18 +46,20 @@ class Encoder {
     this._offset = 1;
   }
 
-  grow() {
+  grow(length) {
+    if (this._offset + length < this.buffer.length) {
+      return;
+    }
+    const chunks = Math.ceil((length || 1) / BUFFER_CHUNK) * BUFFER_CHUNK;
     const old = this.buffer;
-    this.buffer = new Uint8Array(old.length + BUFFER_CHUNK);
+    this.buffer = new Uint8Array(old.length + chunks);
     this.buffer.set(old);
     this.view = new DataView(this.buffer.buffer);
   }
 
   set offset(v) {
+    this.grow(v);
     this._offset = v;
-    if (this._offset >= this.buffer.length) {
-      this.grow();
-    }
   }
 
   get offset() {
@@ -68,8 +70,8 @@ class Encoder {
     const a = this.encoder.encode(atom);
     if (atom.length > 4) {
       this.buffer[this.offset++] = ATOM_EXT;
-      this.view.setUint16(this.offset, a.length);
       this.offset += 2;
+      this.view.setUint16(this.offset - 2, a.length);
     } else {
       this.buffer[this.offset++] = SMALL_ATOM_EXT;
       this.buffer[this.offset++] = a.length;
@@ -77,8 +79,8 @@ class Encoder {
     while (this.offset + a.length > this.buffer.length) {
       this.grow();
     }
-    this.buffer.set(a, this.offset);
     this.offset += a.length;
+    this.buffer.set(a, this.offset - a.length);
   }
 
   pack(value) {
@@ -99,8 +101,8 @@ class Encoder {
           this.buffer[this.offset++] = value;
         } else if (value < MAX_INT32) {
           this.buffer[this.offset++] = INTEGER_EXT;
-          this.view.setUint32(this.offset, value);
           this.offset += 4;
+          this.view.setUint32(this.offset - 4, value);
         } else {
           this.buffer[this.offset++] = SMALL_BIG_EXT;
 
@@ -121,8 +123,8 @@ class Encoder {
         }
       } else {
         this.buffer[this.offset++] = NEW_FLOAT_EXT;
-        this.view.setFloat64(this.offset, value);
         this.offset += 8;
+        this.view.setFloat64(this.offset - 8, value);
       }
       return;
     }
@@ -145,20 +147,16 @@ class Encoder {
       }
 
       this.view.setUint32(byteCountIndex, byteCount);
-      this.offset += 4;
       return;
     }
 
     if (typeof value === 'string') {
       this.buffer[this.offset++] = BINARY_EXT;
-      this.view.setUint32(this.offset, value.length);
       this.offset += 4;
+      this.view.setUint32(this.offset - 4, value.length);
       const a = this.encoder.encode(value);
-      while (this.offset + a.length > this.buffer.length) {
-        this.grow();
-      }
-      this.buffer.set(a, this.offset);
       this.offset += a.length;
+      this.buffer.set(a, this.offset - a.length);
       return;
     }
 
@@ -171,8 +169,9 @@ class Encoder {
       }
 
       this.buffer[this.offset++] = LIST_EXT;
-      this.view.setUint32(this.offset, length);
+
       this.offset += 4;
+      this.view.setUint32(this.offset - 4, length);
 
       value.forEach((v) => {
         this.pack(v);
@@ -185,8 +184,9 @@ class Encoder {
     if (typeof value === 'object') {
       const properties = Object.getOwnPropertyNames(value);
       this.buffer[this.offset++] = MAP_EXT;
-      this.view.setUint32(this.offset, properties.length);
+
       this.offset += 4;
+      this.view.setUint32(this.offset - 4, properties.length);
 
       properties.forEach((p) => {
         this.pack(p);
