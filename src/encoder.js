@@ -76,15 +76,12 @@ class Encoder {
       this.buffer[this.offset++] = SMALL_ATOM_EXT;
       this.buffer[this.offset++] = a.length;
     }
-    while (this.offset + a.length > this.buffer.length) {
-      this.grow();
-    }
     this.offset += a.length;
     this.buffer.set(a, this.offset - a.length);
   }
 
   pack(value) {
-    if (value == null) {
+    if (value === null || value === undefined) {
       this.appendAtom('nil');
       return;
     }

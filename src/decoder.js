@@ -53,16 +53,15 @@ const processAtom = (atom) => {
 };
 
 module.exports = class Decoder {
-  constructor(buffer, checkVersion = true) {
-    buffer = new Uint8Array(buffer);
-    this.view = new DataView(buffer.buffer);
+  constructor(buffer) {
+    this.buffer = new Uint8Array(buffer);
+    this.view = new DataView(this.buffer.buffer);
     this.offset = 0;
     this.decoder = new TextDecoder('utf8');
-    if (checkVersion) {
-      const version = this.read8();
-      if (version !== FORMAT_VERSION) {
-        throw new Error('invalid version header');
-      }
+
+    const version = this.read8();
+    if (version !== FORMAT_VERSION) {
+      throw new Error('invalid version header');
     }
   }
 
@@ -91,11 +90,10 @@ module.exports = class Decoder {
   }
 
   readString(length) {
-    const a = new Uint8Array(length);
-    for (let i = 0; i < length; i += 1) {
-      a[i] = this.read8();
-    }
-    return this.decoder.decode(a);
+    const sub = this.buffer.subarray(this.offset, this.offset + length);
+    const str = this.decoder.decode(sub);
+    this.offset += length;
+    return str;
   }
 
   decodeArray(length) {
