@@ -96,10 +96,10 @@ class Encoder {
         if (value >= 0 && value < 256) {
           this.buffer[this.offset++] = SMALL_INTEGER_EXT;
           this.buffer[this.offset++] = value;
-        } else if (value < MAX_INT32) {
+        } else if (value >= 0 && value < MAX_INT32) {
           this.buffer[this.offset++] = INTEGER_EXT;
           this.offset += 4;
-          this.view.setUint32(this.offset - 4, value);
+          this.view.setInt32(this.offset - 4, value);
         } else {
           this.buffer[this.offset++] = SMALL_BIG_EXT;
 
@@ -109,12 +109,12 @@ class Encoder {
           const sign = value > 0 ? 0 : 1;
           this.buffer[this.offset++] = sign;
 
-          let ull = sign === 1 ? -value : value;
+          let ull = BigInt(sign === 1 ? -value : value);
           let byteCount = 0;
           while (ull > 0) {
             byteCount += 1;
-            this.buffer[this.offset++] = ull & 0xFF;
-            ull >>= 8;
+            this.buffer[this.offset++] = Number(ull & 0xFFn);
+            ull >>= 8n;
           }
           this.buffer[byteCountIndex] = byteCount;
         }

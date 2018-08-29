@@ -113,7 +113,7 @@ module.exports = class Decoder {
     for (let i = 0; i < digits; i += 1) {
       const digit = this.read8();
       value += digit * b;
-      b <<= 8;
+      b = Number(BigInt(b) << 8n);
     }
 
     if (digits < 4) {
