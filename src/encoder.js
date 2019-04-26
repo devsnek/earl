@@ -8,8 +8,8 @@ const {
 
   NEW_FLOAT_EXT,
   // BIT_BINARY_EXT,
-  SMALL_INTEGER_EXT,
-  INTEGER_EXT,
+  // SMALL_INTEGER_EXT,
+  // INTEGER_EXT,
   // FLOAT_EXT,
   ATOM_EXT,
   // REFERENCE_EXT,
@@ -21,7 +21,7 @@ const {
   // STRING_EXT,
   LIST_EXT,
   BINARY_EXT,
-  SMALL_BIG_EXT,
+  // SMALL_BIG_EXT,
   LARGE_BIG_EXT,
   // NEW_FUN_EXT,
   // EXPORT_EXT,
@@ -32,9 +32,6 @@ const {
   // COMPRESSED,
 } = require('./constants');
 
-/* eslint-disable no-plusplus */
-
-const MAX_INT32 = (2 ** 31) - 1;
 const BUFFER_CHUNK = 2048;
 
 class Encoder {
@@ -66,6 +63,8 @@ class Encoder {
     return this._offset;
   }
 
+  /* eslint-disable no-plusplus */
+
   appendAtom(atom) {
     const a = this.encoder.encode(atom);
     if (atom.length > 4) {
@@ -92,37 +91,9 @@ class Encoder {
     }
 
     if (typeof value === 'number') {
-      if (value % 1 === 0) {
-        if (value >= 0 && value < 256) {
-          this.buffer[this.offset++] = SMALL_INTEGER_EXT;
-          this.buffer[this.offset++] = value;
-        } else if (value >= 0 && value < MAX_INT32) {
-          this.buffer[this.offset++] = INTEGER_EXT;
-          this.offset += 4;
-          this.view.setInt32(this.offset - 4, value);
-        } else {
-          this.buffer[this.offset++] = SMALL_BIG_EXT;
-
-          const byteCountIndex = this.offset;
-          this.offset++;
-
-          const sign = value > 0 ? 0 : 1;
-          this.buffer[this.offset++] = sign;
-
-          let ull = BigInt(sign === 1 ? -value : value);
-          let byteCount = 0;
-          while (ull > 0) {
-            byteCount += 1;
-            this.buffer[this.offset++] = Number(ull & 0xFFn);
-            ull >>= 8n;
-          }
-          this.buffer[byteCountIndex] = byteCount;
-        }
-      } else {
-        this.buffer[this.offset++] = NEW_FLOAT_EXT;
-        this.offset += 8;
-        this.view.setFloat64(this.offset - 8, value);
-      }
+      this.buffer[this.offset++] = NEW_FLOAT_EXT;
+      this.offset += 8;
+      this.view.setFloat64(this.offset - 8, value);
       return;
     }
 

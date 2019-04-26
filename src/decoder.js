@@ -12,9 +12,9 @@ const {
   INTEGER_EXT,
   FLOAT_EXT,
   ATOM_EXT,
-  REFERENCE_EXT,
-  PORT_EXT,
-  PID_EXT,
+  // REFERENCE_EXT,
+  // PORT_EXT,
+  // PID_EXT,
   SMALL_TUPLE_EXT,
   LARGE_TUPLE_EXT,
   NIL_EXT,
@@ -24,8 +24,8 @@ const {
   SMALL_BIG_EXT,
   LARGE_BIG_EXT,
   // NEW_FUN_EXT,
-  EXPORT_EXT,
-  NEW_REFERENCE_EXT,
+  // EXPORT_EXT,
+  // NEW_REFERENCE_EXT,
   SMALL_ATOM_EXT,
   MAP_EXT,
   // FUN_EXT,
@@ -97,9 +97,9 @@ module.exports = class Decoder {
   }
 
   decodeArray(length) {
-    const array = new Array(length);
+    const array = [];
     for (let i = 0; i < length; i += 1) {
-      array[i] = this.unpack();
+      array.push(this.unpack());
     }
     return array;
   }
@@ -111,9 +111,9 @@ module.exports = class Decoder {
     let b = 1;
 
     for (let i = 0; i < digits; i += 1) {
-      const digit = this.read8();
+      const digit = BigInt(this.read8());
       value += digit * b;
-      b = Number(BigInt(b) << 8n);
+      b <<= 8n;
     }
 
     if (digits < 4) {
@@ -137,8 +137,8 @@ module.exports = class Decoder {
     let b = 1n;
 
     for (let i = 0; i < digits; i += 1) {
-      const digit = this.read8();
-      value += BigInt(digit) * b;
+      const digit = BigInt(this.read8());
+      value += digit * b;
       b <<= 8n;
     }
 
@@ -196,39 +196,6 @@ module.exports = class Decoder {
         const digits = this.read32();
         return this.decodeBigBigInt(digits);
       }
-      case REFERENCE_EXT:
-        return {
-          node: this.unpack(),
-          id: [this.read32()],
-          creation: this.read8(),
-        };
-      case NEW_REFERENCE_EXT: {
-        const length = this.read16();
-        return {
-          node: this.unpack(),
-          creation: this.read8(),
-          ids: Array.from({ length }, () => this.read32()),
-        };
-      }
-      case PORT_EXT:
-        return {
-          node: this.unpack(),
-          id: this.read32(),
-          creation: this.read8(),
-        };
-      case PID_EXT:
-        return {
-          node: this.unpack(),
-          id: this.read32(),
-          serial: this.read32(),
-          creation: this.read8(),
-        };
-      case EXPORT_EXT:
-        return {
-          mod: this.unpack(),
-          fun: this.unpack(),
-          arity: this.unpack(),
-        };
       default:
         throw new Error('unsupported etf type');
     }
