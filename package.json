@@ -1,11 +1,11 @@
 {
-  "name": "earl",
+  "name": "@devsnek/earl",
   "version": "1.0.0",
   "description": "JavaScript library for Erlang External Term Format",
   "main": "index.js",
   "dependencies": {},
   "devDependencies": {
-    "@devsnek/fuzzy": "^1.0.1",
+    "@devsnek/fuzzy": "^2.0.1",
     "erlpack": "github:discordjs/erlpack#feature/bigint"
   },
   "scripts": {
