@@ -12,9 +12,11 @@ const {
   arrayBuffer, json,
   promise,
   proxy,
+  bigint,
 } = require('@devsnek/fuzzy');
 const { deepStrictEqual } = require('assert');
-const { pack, unpack } = require('.');
+const erlpack = require('erlpack');
+const earl = require('.');
 
 const value = () => random({
   exclude: [
@@ -27,12 +29,13 @@ const value = () => random({
     arrayBuffer, json,
     promise,
     proxy,
+    bigint,
   ],
 });
 
-for (let i = 0; i < 100; i += 1) {
+for (let i = 0; i < 10000; i += 1) {
   const v = value();
-  const packed = pack(v);
-  const unpacked = unpack(packed);
+  const packed = earl.pack(v);
+  const unpacked = erlpack.unpack(packed);
   deepStrictEqual(unpacked, v);
 }

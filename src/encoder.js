@@ -40,11 +40,11 @@ class Encoder {
     this.view = new DataView(this.buffer.buffer);
     this.encoder = new TextEncoder();
     this.buffer[0] = FORMAT_VERSION;
-    this._offset = 1;
+    this.offset = 1;
   }
 
   grow(length) {
-    if (this._offset + length < this.buffer.length) {
+    if (this.offset + length < this.buffer.length) {
       return;
     }
     const chunks = Math.ceil((length || 1) / BUFFER_CHUNK) * BUFFER_CHUNK;
@@ -54,29 +54,46 @@ class Encoder {
     this.view = new DataView(this.buffer.buffer);
   }
 
-  set offset(v) {
-    this.grow(v);
-    this._offset = v;
+  write(v) {
+    this.grow(v.length);
+    this.buffer.set(v, this.offset);
+    this.offset += v.length;
   }
 
-  get offset() {
-    return this._offset;
+  write8(v) {
+    this.grow(1);
+    this.view.setUint8(this.offset, v);
+    this.offset += 1;
   }
 
-  /* eslint-disable no-plusplus */
+  write16(v) {
+    this.grow(2);
+    this.view.setUint16(this.offset, v);
+    this.offset += 2;
+  }
+
+  write32(v) {
+    this.grow(4);
+    this.view.setUint32(this.offset, v);
+    this.offset += 4;
+  }
+
+  writeFloat(v) {
+    this.grow(8);
+    this.view.setFloat64(this.offset, v);
+    this.offset += 8;
+  }
 
   appendAtom(atom) {
     const a = this.encoder.encode(atom);
-    if (atom.length > 4) {
-      this.buffer[this.offset++] = ATOM_EXT;
-      this.offset += 2;
-      this.view.setUint16(this.offset - 2, a.length);
+    if (a.length < 255) {
+      this.write8(SMALL_ATOM_EXT);
+      this.write8(a.length);
     } else {
-      this.buffer[this.offset++] = SMALL_ATOM_EXT;
-      this.buffer[this.offset++] = a.length;
+      this.write8(ATOM_EXT);
+      this.write16(a.length);
     }
-    this.offset += a.length;
-    this.buffer.set(a, this.offset - a.length);
+    this.write(a);
   }
 
   pack(value) {
@@ -91,26 +108,25 @@ class Encoder {
     }
 
     if (typeof value === 'number') {
-      this.buffer[this.offset++] = NEW_FLOAT_EXT;
-      this.offset += 8;
-      this.view.setFloat64(this.offset - 8, value);
+      this.write8(NEW_FLOAT_EXT);
+      this.writeFloat(value);
       return;
     }
 
     if (typeof value === 'bigint') { // eslint-disable-line valid-typeof
-      this.buffer[this.offset++] = LARGE_BIG_EXT;
+      this.write8(LARGE_BIG_EXT);
 
       const byteCountIndex = this.offset;
       this.offset += 4;
 
       const sign = value > 0n ? 0 : 1;
-      this.buffer[this.offset++] = sign;
+      this.write8(sign);
 
       let ull = sign === 1 ? -value : value;
       let byteCount = 0;
       while (ull > 0) {
         byteCount += 1;
-        this.buffer[this.offset++] = Number(ull & 0xFFn);
+        this.write8(Number(ull & 0xFFn));
         ull >>= 8n;
       }
 
@@ -119,12 +135,10 @@ class Encoder {
     }
 
     if (typeof value === 'string') {
-      this.buffer[this.offset++] = BINARY_EXT;
+      this.write8(BINARY_EXT);
       const a = this.encoder.encode(value);
-      this.offset += 4;
-      this.view.setUint32(this.offset - 4, a.length);
-      this.offset += a.length;
-      this.buffer.set(a, this.offset - a.length);
+      this.write32(a.length);
+      this.write(a);
       return;
     }
 
@@ -132,29 +146,28 @@ class Encoder {
       const { length } = value;
 
       if (length === 0) {
-        this.buffer[this.offset++] = NIL_EXT;
+        this.write8(NIL_EXT);
         return;
       }
 
-      this.buffer[this.offset++] = LIST_EXT;
+      this.write8(LIST_EXT);
 
-      this.offset += 4;
-      this.view.setUint32(this.offset - 4, length);
+      this.write32(length);
 
       value.forEach((v) => {
         this.pack(v);
       });
 
-      this.buffer[this.offset++] = NIL_EXT;
+      this.write8(NIL_EXT);
       return;
     }
 
     if (typeof value === 'object') {
-      const properties = Object.keys(value);
-      this.buffer[this.offset++] = MAP_EXT;
+      this.write8(MAP_EXT);
 
-      this.offset += 4;
-      this.view.setUint32(this.offset - 4, properties.length);
+      const properties = Object.keys(value);
+
+      this.write32(properties.length);
 
       properties.forEach((p) => {
         this.pack(p);
