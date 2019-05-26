@@ -197,7 +197,7 @@ module.exports = class Decoder {
         return this.decodeBigBigInt(digits);
       }
       default:
-        throw new Error('unsupported etf type');
+        throw new Error(`unsupported etf type ${type}`);
     }
   }
 };

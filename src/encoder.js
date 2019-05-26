@@ -120,9 +120,9 @@ class Encoder {
 
     if (typeof value === 'string') {
       this.buffer[this.offset++] = BINARY_EXT;
-      this.offset += 4;
-      this.view.setUint32(this.offset - 4, value.length);
       const a = this.encoder.encode(value);
+      this.offset += 4;
+      this.view.setUint32(this.offset - 4, a.length);
       this.offset += a.length;
       this.buffer.set(a, this.offset - a.length);
       return;
@@ -150,7 +150,7 @@ class Encoder {
     }
 
     if (typeof value === 'object') {
-      const properties = Object.getOwnPropertyNames(value);
+      const properties = Object.keys(value);
       this.buffer[this.offset++] = MAP_EXT;
 
       this.offset += 4;
