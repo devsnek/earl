@@ -8,8 +8,8 @@ const {
 
   NEW_FLOAT_EXT,
   // BIT_BINARY_EXT,
-  // SMALL_INTEGER_EXT,
-  // INTEGER_EXT,
+  SMALL_INTEGER_EXT,
+  INTEGER_EXT,
   // FLOAT_EXT,
   ATOM_EXT,
   // REFERENCE_EXT,
@@ -108,8 +108,18 @@ class Encoder {
     }
 
     if (typeof value === 'number') {
-      this.write8(NEW_FLOAT_EXT);
-      this.writeFloat(value);
+      if ((value | 0) === value) {
+        if (value > -128 && value < 128) {
+          this.write8(SMALL_INTEGER_EXT);
+          this.write8(value);
+        } else {
+          this.write8(INTEGER_EXT);
+          this.write32(value);
+        }
+      } else {
+        this.write8(NEW_FLOAT_EXT);
+        this.writeFloat(value);
+      }
       return;
     }
 
