@@ -1,14 +1,11 @@
 'use strict';
 
 module.exports = {
-  extends: 'airbnb',
+  extends: 'airbnb-base',
   parser: 'babel-eslint',
   parserOptions: {
-    ecmaVersion: 2018,
+    ecmaVersion: 2020,
     sourceType: 'script',
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
   },
   env: {
     es6: true,
@@ -38,8 +35,19 @@ module.exports = {
     },
   ],
   rules: {
-    'no-shadow-restricted-names': 'off', // breaks optional catch binding; don't name your args "eval", thx
     'strict': ['error', 'global'],
+    'indent': ['error', 2, {
+      SwitchCase: 1,
+      FunctionDeclaration: {
+        parameters: 'first',
+      },
+      FunctionExpression: {
+        parameters: 'first',
+      },
+      CallExpression: {
+        arguments: 'first',
+      },
+    }],
     'no-bitwise': 'off',
     'no-iterator': 'off',
     'global-require': 'off',
@@ -54,17 +62,27 @@ module.exports = {
     'object-curly-newline': 'off',
     'prefer-const': ['error', { destructuring: 'all' }],
     'class-methods-use-this': 'off',
+    'implicit-arrow-linebreak': 'off',
+    'lines-between-class-members': 'off',
     'import/no-dynamic-require': 'off',
     'import/no-extraneous-dependencies': ['error', {
       devDependencies: true,
     }],
     'import/extensions': 'off',
+    'import/prefer-default-export': 'off',
+    'max-classes-per-file': 'off',
   },
   globals: {
     WebAssembly: false,
     BigInt: false,
+    BigInt64Array: false,
+    BigUint64Array: false,
     URL: false,
     Atomics: false,
     SharedArrayBuffer: false,
+    globalThis: false,
+    FinalizationGroup: false,
+    WeakRef: false,
+    queueMicrotask: false,
   },
 };

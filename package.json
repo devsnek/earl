@@ -6,7 +6,11 @@
   "dependencies": {},
   "devDependencies": {
     "@devsnek/fuzzy": "^2.0.2",
-    "erlpack": "github:discordjs/erlpack#feature/bigint"
+    "babel-eslint": "^10.1.0",
+    "erlpack": "github:discordapp/erlpack",
+    "eslint": "^6.1.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.20.1"
   },
   "scripts": {
     "test": "node ./node_modules/.bin/jest"

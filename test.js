@@ -35,7 +35,14 @@ const value = () => random({
 
 for (let i = 0; i < 10000; i += 1) {
   const v = value();
-  const packed = earl.pack(v);
-  const unpacked = erlpack.unpack(packed);
-  deepStrictEqual(unpacked, v);
+  {
+    const packed = earl.pack(v);
+    const unpacked = erlpack.unpack(packed);
+    deepStrictEqual(unpacked, v);
+  }
+  {
+    const packed = erlpack.pack(v);
+    const unpacked = earl.unpack(packed);
+    deepStrictEqual(unpacked, v);
+  }
 }

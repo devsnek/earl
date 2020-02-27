@@ -166,8 +166,12 @@ module.exports = class Decoder {
         return this.decodeArray(this.read32());
       case NIL_EXT:
         return [];
-      case STRING_EXT:
-        return this.readString(this.read16());
+      case STRING_EXT: {
+        const length = this.read16();
+        const sub = this.buffer.subarray(this.offset, this.offset + length);
+        this.offset += length;
+        return [...sub];
+      }
       case LIST_EXT: {
         const length = this.read32();
         const array = this.decodeArray(length);
