@@ -53,11 +53,13 @@ const processAtom = (atom) => {
 };
 
 module.exports = class Decoder {
-  constructor(buffer) {
+  constructor(buffer, bigintToString) {
     this.buffer = new Uint8Array(buffer);
     this.view = new DataView(this.buffer.buffer);
     this.offset = 0;
     this.decoder = new TextDecoder('utf8');
+
+    this.bigintToString = bigintToString;
 
     const version = this.read8();
     if (version !== FORMAT_VERSION) {
@@ -71,6 +73,12 @@ module.exports = class Decoder {
     return val;
   }
 
+  readi8() {
+    const val = this.view.getInt8(this.offset);
+    this.offset += 1;
+    return val;
+  }
+
   read16() {
     const val = this.view.getUint16(this.offset);
     this.offset += 2;
@@ -79,6 +87,12 @@ module.exports = class Decoder {
 
   read32() {
     const val = this.view.getUint32(this.offset);
+    this.offset += 4;
+    return val;
+  }
+
+  readi32() {
+    const val = this.view.getInt32(this.offset);
     this.offset += 4;
     return val;
   }
@@ -111,9 +125,9 @@ module.exports = class Decoder {
     let b = 1;
 
     for (let i = 0; i < digits; i += 1) {
-      const digit = BigInt(this.read8());
+      const digit = this.read8();
       value += digit * b;
-      b <<= 8n;
+      b <<= 8;
     }
 
     if (digits < 4) {
@@ -130,7 +144,7 @@ module.exports = class Decoder {
     return sign === 0 ? value : -value;
   }
 
-  decodeBigBigInt(digits) {
+  decodeBigInt(digits) {
     const sign = this.read8();
 
     let value = 0n;
@@ -142,16 +156,20 @@ module.exports = class Decoder {
       b <<= 8n;
     }
 
-    return sign === 0 ? value : -value;
+    const v = sign === 0 ? value : -value;
+    if (this.bigintToString) {
+      return v.toString();
+    }
+    return v;
   }
 
   unpack() {
     const type = this.read8();
     switch (type) {
       case SMALL_INTEGER_EXT:
-        return this.read8();
+        return this.readi8();
       case INTEGER_EXT:
-        return this.read32();
+        return this.readi32();
       case FLOAT_EXT:
         return Number.parseFloat(this.readString(31));
       case NEW_FLOAT_EXT:
@@ -194,11 +212,11 @@ module.exports = class Decoder {
       }
       case SMALL_BIG_EXT: {
         const digits = this.read8();
-        return digits >= 7 ? this.decodeBigBigInt(digits) : this.decodeBigNumber(digits);
+        return digits >= 7 ? this.decodeBigInt(digits) : this.decodeBigNumber(digits);
       }
       case LARGE_BIG_EXT: {
         const digits = this.read32();
-        return this.decodeBigBigInt(digits);
+        return this.decodeBigInt(digits);
       }
       default:
         throw new Error(`unsupported etf type ${type}`);

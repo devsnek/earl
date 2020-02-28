@@ -47,7 +47,7 @@ class Encoder {
     if (this.offset + length < this.buffer.length) {
       return;
     }
-    const chunks = Math.ceil((length || 1) / BUFFER_CHUNK) * BUFFER_CHUNK;
+    const chunks = Math.ceil(length / BUFFER_CHUNK) * BUFFER_CHUNK;
     const old = this.buffer;
     this.buffer = new Uint8Array(old.length + chunks);
     this.buffer.set(old);
@@ -123,16 +123,15 @@ class Encoder {
       return;
     }
 
-    if (typeof value === 'bigint') { // eslint-disable-line valid-typeof
+    if (typeof value === 'bigint') {
       this.write8(LARGE_BIG_EXT);
 
       const byteCountIndex = this.offset;
       this.offset += 4;
 
-      const sign = value > 0n ? 0 : 1;
-      this.write8(sign);
+      this.write8(value < 0n ? 1 : 0);
 
-      let ull = sign === 1 ? -value : value;
+      let ull = value < 0n ? -value : value;
       let byteCount = 0;
       while (ull > 0) {
         byteCount += 1;
@@ -161,7 +160,6 @@ class Encoder {
       }
 
       this.write8(LIST_EXT);
-
       this.write32(length);
 
       value.forEach((v) => {

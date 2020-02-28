@@ -9,8 +9,8 @@ module.exports = {
     encoder.pack(v);
     return encoder.buffer.slice(0, encoder.offset);
   },
-  unpack: (v) => {
-    const decoder = new Decoder(v);
+  unpack: (v, { bigintToString = false } = {}) => {
+    const decoder = new Decoder(v, bigintToString);
     return decoder.unpack();
   },
 };
