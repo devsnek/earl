@@ -1,11 +1,11 @@
-# earl
+# erlpackjs
 
 Pure JavaScript ETF encoder/decoder
 
 ```js
-const { pack, unpack } = require('@earl');
+const erlpack = require('erlpackjs');
 
-const buf = pack({ a: 1n });
+const buf = erlpack.pack({ a: 1n });
 
-console.log(unpack(buf)); // { a : 1n }
+console.log(erlpack.unpack(buf)); // { a : 1n }
 ```
