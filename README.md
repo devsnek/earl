@@ -9,4 +9,3 @@ const buf = pack({ a: 1n });
 
 console.log(unpack(buf)); // { a : 1n }
 ```
-

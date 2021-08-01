@@ -1,29 +1,46 @@
 {
-  "name": "@devsnek/earl",
-  "version": "1.0.0",
-  "description": "JavaScript library for Erlang External Term Format",
-  "main": "src/index.js",
-  "dependencies": {},
-  "devDependencies": {
-    "@devsnek/fuzzy": "^2.0.2",
-    "babel-eslint": "^10.1.0",
-    "erlpack": "github:discordapp/erlpack",
-    "eslint": "^6.1.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.20.1"
-  },
-  "scripts": {
-    "test": "node ./node_modules/.bin/jest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/devsnek/earl.git"
-  },
-  "author": "devsnek",
-  "license": "MIT",
-  "gypfile": true,
-  "bugs": {
-    "url": "https://github.com/devsnek/earl/issues"
-  },
-  "homepage": "https://github.com/devsnek/earl#readme"
+    "name": "@devsnek/earl",
+    "version": "1.0.0",
+    "description": "JavaScript library for Erlang External Term Format",
+    "main": "./dist/index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/devsnek/earl.git"
+    },
+    "author": "devsnek",
+    "license": "MIT",
+    "gypfile": true,
+    "bugs": {
+        "url": "https://github.com/devsnek/earl/issues"
+    },
+    "homepage": "https://github.com/devsnek/earl#readme",
+    "scripts": {
+        "build": "node_modules/.bin/tsc",
+        "dev": "ts-node test/index.ts",
+        "eslint": "eslint --fix . --ext ts",
+        "watch": "node_modules/.bin/tsc -w",
+        "prettier": "prettier --write .",
+        "test": "jest"
+    },
+    "dependencies": {
+        "erlpack": "^0.1.3"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.14.8",
+        "@babel/preset-env": "^7.14.8",
+        "@babel/preset-typescript": "^7.14.5",
+        "@types/jest": "^26.0.24",
+        "@types/node": "^16.4.9",
+        "@typescript-eslint/eslint-plugin": "^4.28.5",
+        "@typescript-eslint/parser": "^4.28.5",
+        "babel-jest": "^27.0.6",
+        "eslint": "^7.32.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-import": "^2.23.4",
+        "eslint-plugin-prettier": "^3.4.0",
+        "jest": "^27.0.6",
+        "prettier": "^2.3.2",
+        "ts-node": "^10.1.0",
+        "typescript": "^4.3.5"
+    }
 }

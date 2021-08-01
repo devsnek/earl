@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "declaration": true,
+        "declarationDir": "./dist",
+        "outDir": "./dist",
+        "noEmitOnError": true,
+        "strict": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "alwaysStrict": true,
+        "baseUrl": ".",
+        "isolatedModules": true,
+        "lib": ["dom", "esnext"],
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "removeComments": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "strictPropertyInitialization": false
+    },
+    "exclude": ["node_modules", "dist"],
+    "include": ["src"]
+}
