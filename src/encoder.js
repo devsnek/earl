@@ -1,7 +1,6 @@
 'use strict';
 
-// eslint-disable-next-line no-undef
-const { TextEncoder } = typeof window !== 'undefined' ? window : require('util');
+const { RegisteredAtom } = require('./atom');
 
 const {
   FORMAT_VERSION,
@@ -12,6 +11,7 @@ const {
   INTEGER_EXT,
   // FLOAT_EXT,
   ATOM_EXT,
+  ATOM_UTF8_EXT,
   // REFERENCE_EXT,
   // PORT_EXT,
   // PID_EXT,
@@ -27,18 +27,18 @@ const {
   // EXPORT_EXT,
   // NEW_REFERENCE_EXT,
   SMALL_ATOM_EXT,
+  SMALL_ATOM_UTF8_EXT,
   MAP_EXT,
   // FUN_EXT,
   // COMPRESSED,
 } = require('./constants');
 
-const BUFFER_CHUNK = 2048;
+const textEncoder = new TextEncoder();
 
 class Encoder {
   constructor() {
-    this.buffer = new Uint8Array(BUFFER_CHUNK);
+    this.buffer = new Uint8Array(2048);
     this.view = new DataView(this.buffer.buffer);
-    this.encoder = new TextEncoder();
     this.buffer[0] = FORMAT_VERSION;
     this.offset = 1;
   }
@@ -47,9 +47,8 @@ class Encoder {
     if (this.offset + length < this.buffer.length) {
       return;
     }
-    const chunks = Math.ceil(length / BUFFER_CHUNK) * BUFFER_CHUNK;
     const old = this.buffer;
-    this.buffer = new Uint8Array(old.length + chunks);
+    this.buffer = new Uint8Array(old.length * 2);
     this.buffer.set(old);
     this.view = new DataView(this.buffer.buffer);
   }
@@ -85,12 +84,13 @@ class Encoder {
   }
 
   appendAtom(atom) {
-    const a = this.encoder.encode(atom);
-    if (a.length < 255) {
-      this.write8(SMALL_ATOM_EXT);
+    const a = textEncoder.encode(atom);
+    const isUtf8 = /[^\u0000-\u00FF]/u.test(atom); // eslint-disable-line no-control-regex
+    if (a.length < 256) {
+      this.write8(isUtf8 ? SMALL_ATOM_UTF8_EXT : SMALL_ATOM_EXT);
       this.write8(a.length);
     } else {
-      this.write8(ATOM_EXT);
+      this.write8(isUtf8 ? ATOM_UTF8_EXT : ATOM_EXT);
       this.write16(a.length);
     }
     this.write(a);
@@ -145,26 +145,31 @@ class Encoder {
 
     if (typeof value === 'string') {
       this.write8(BINARY_EXT);
-      const a = this.encoder.encode(value);
+      const a = textEncoder.encode(value);
       this.write32(a.length);
       this.write(a);
       return;
     }
 
     if (Array.isArray(value)) {
-      if (array.length === 0) {
+      if (value.length === 0) {
         this.write8(NIL_EXT);
         return;
       }
 
       this.write8(LIST_EXT);
-      this.write32(array.length);
+      this.write32(value.length);
 
       value.forEach((v) => {
         this.pack(v);
       });
 
       this.write8(NIL_EXT);
+      return;
+    }
+
+    if (value instanceof RegisteredAtom) {
+      this.appendAtom(value.name);
       return;
     }
 

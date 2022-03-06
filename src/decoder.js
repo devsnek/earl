@@ -1,8 +1,5 @@
 'use strict';
 
-// eslint-disable-next-line no-undef
-const { TextDecoder } = typeof window !== 'undefined' ? window : require('util');
-
 const {
   FORMAT_VERSION,
 
@@ -12,8 +9,10 @@ const {
   INTEGER_EXT,
   FLOAT_EXT,
   ATOM_EXT,
+  ATOM_UTF8_EXT,
   // REFERENCE_EXT,
   // PORT_EXT,
+  NEW_PID_EXT,
   // PID_EXT,
   SMALL_TUPLE_EXT,
   LARGE_TUPLE_EXT,
@@ -26,13 +25,18 @@ const {
   // NEW_FUN_EXT,
   // EXPORT_EXT,
   // NEW_REFERENCE_EXT,
+  NEWER_REFERENCE_EXT,
   SMALL_ATOM_EXT,
+  SMALL_ATOM_UTF8_EXT,
   MAP_EXT,
   // FUN_EXT,
   // COMPRESSED,
 } = require('./constants');
+const { Atom } = require('./atom');
 
-const processAtom = (atom) => {
+const textDecoder = new TextDecoder();
+
+const processAtom = (atom, atomToString) => {
   if (!atom) {
     return undefined;
   }
@@ -49,17 +53,25 @@ const processAtom = (atom) => {
     return false;
   }
 
-  return atom;
+  if (atomToString) {
+    return atom;
+  }
+  return Atom(atom);
 };
 
 module.exports = class Decoder {
-  constructor(buffer, bigintToString) {
-    this.buffer = new Uint8Array(buffer);
-    this.view = new DataView(this.buffer.buffer);
+  constructor(buffer, { bigintToString, atomToString } = {}) {
+    if (ArrayBuffer.isView(buffer)) {
+      this.buffer = buffer;
+      this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    } else {
+      this.buffer = new Uint8Array(buffer);
+      this.view = new DataView(buffer);
+    }
     this.offset = 0;
-    this.decoder = new TextDecoder('utf8');
 
     this.bigintToString = bigintToString;
+    this.atomToString = atomToString;
 
     const version = this.read8();
     if (version !== FORMAT_VERSION) {
@@ -105,7 +117,7 @@ module.exports = class Decoder {
 
   readString(length) {
     const sub = this.buffer.subarray(this.offset, this.offset + length);
-    const str = this.decoder.decode(sub);
+    const str = textDecoder.decode(sub);
     this.offset += length;
     return str;
   }
@@ -163,6 +175,17 @@ module.exports = class Decoder {
     return v;
   }
 
+  decodeAtom(type) {
+    type = type ?? this.read8();
+    if (type === SMALL_ATOM_EXT || type === SMALL_ATOM_UTF8_EXT) {
+      return processAtom(this.readString(this.read8()), this.atomToString);
+    }
+    if (type === ATOM_EXT || type === ATOM_UTF8_EXT) {
+      return processAtom(this.readString(this.read16()), this.atomToString);
+    }
+    throw new RangeError(`unknown atom type ${type}`);
+  }
+
   unpack() {
     const type = this.read8();
     switch (type) {
@@ -175,9 +198,10 @@ module.exports = class Decoder {
       case NEW_FLOAT_EXT:
         return this.readDouble();
       case ATOM_EXT:
-        return processAtom(this.readString(this.read16()));
+      case ATOM_UTF8_EXT:
       case SMALL_ATOM_EXT:
-        return processAtom(this.readString(this.read8()));
+      case SMALL_ATOM_UTF8_EXT:
+        return this.decodeAtom(type);
       case SMALL_TUPLE_EXT:
         return this.decodeArray(this.read8());
       case LARGE_TUPLE_EXT:
@@ -217,6 +241,27 @@ module.exports = class Decoder {
       case LARGE_BIG_EXT: {
         const digits = this.read32();
         return this.decodeBigInt(digits);
+      }
+      case NEW_PID_EXT:
+        return {
+          node: this.decodeAtom(),
+          id: this.read32(),
+          serial: this.read32(),
+          creation: this.read32(),
+        };
+      case NEWER_REFERENCE_EXT: {
+        const len = this.read16();
+        const node = this.decodeAtom();
+        const creation = this.read32();
+        const id = [];
+        for (let i = 0; i < len; i += 1) {
+          id.push(this.read32());
+        }
+        return {
+          node,
+          creation,
+          id,
+        };
       }
       default:
         throw new Error(`unsupported etf type ${type}`);

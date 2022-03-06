@@ -23,6 +23,8 @@ const {
   SMALL_INTEGER_EXT,
   SMALL_TUPLE_EXT,
   LARGE_TUPLE_EXT,
+  SMALL_ATOM_EXT,
+  SMALL_ATOM_UTF8_EXT,
 } = require('./src/constants');
 const earl = require('.');
 
@@ -40,22 +42,6 @@ const value = () => random({
     bigint,
   ],
 });
-
-if (false) {
-  for (let i = 0; i < 10000; i += 1) {
-    const v = value();
-    {
-      const packed = earl.pack(v);
-      const unpacked = erlpack.unpack(packed);
-      deepStrictEqual(unpacked, v);
-    }
-    {
-      const packed = erlpack.pack(v);
-      const unpacked = earl.unpack(packed);
-      deepStrictEqual(unpacked, v);
-    }
-  }
-}
 
 [
   0n,
@@ -159,14 +145,72 @@ if (false) {
   deepStrictEqual(unpacked, v);
 });
 
-deepStrictEqual(earl.packTuple([1, 2, 3]), new Uint8Array([
-  FORMAT_VERSION,
-  SMALL_TUPLE_EXT,
-  3,
-  SMALL_INTEGER_EXT,
-  1,
-  SMALL_INTEGER_EXT,
-  2,
-  SMALL_INTEGER_EXT,
-  3,
-]));
+{
+  const packed = earl.packTuple([1, 2, 3]);
+
+  deepStrictEqual(packed, new Uint8Array([
+    FORMAT_VERSION,
+    SMALL_TUPLE_EXT,
+    3,
+    SMALL_INTEGER_EXT,
+    1,
+    SMALL_INTEGER_EXT,
+    2,
+    SMALL_INTEGER_EXT,
+    3,
+  ]));
+
+  deepStrictEqual(earl.unpack(packed), [1, 2, 3]);
+}
+
+{
+  const packed = earl.pack(earl.Atom('hello'));
+
+  deepStrictEqual(packed, new Uint8Array([
+    FORMAT_VERSION,
+    SMALL_ATOM_EXT,
+    5,
+    104,
+    101,
+    108,
+    108,
+    111,
+  ]));
+
+  deepStrictEqual(earl.unpack(packed), 'hello');
+}
+
+{
+  const packed = earl.pack(earl.Atom('a🧪b'));
+
+  deepStrictEqual(packed, new Uint8Array([
+    FORMAT_VERSION,
+    SMALL_ATOM_UTF8_EXT,
+    6,
+    97,
+    240,
+    159,
+    167,
+    170,
+    98,
+  ]));
+
+  deepStrictEqual(earl.unpack(packed), 'a🧪b');
+}
+
+deepStrictEqual(earl.Atom('hello'), earl.Atom('hello'));
+
+// Fuzz testing
+for (let i = 0; i < 10000; i += 1) {
+  const v = value();
+  {
+    const packed = earl.pack(v);
+    const unpacked = erlpack.unpack(packed);
+    deepStrictEqual(unpacked, v);
+  }
+  {
+    const packed = erlpack.pack(v);
+    const unpacked = earl.unpack(packed);
+    deepStrictEqual(unpacked, v);
+  }
+}

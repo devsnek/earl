@@ -1,6 +1,7 @@
 'use strict';
 
 module.exports = {
+  root: true,
   extends: 'airbnb-base',
   parser: 'babel-eslint',
   parserOptions: {
@@ -81,7 +82,7 @@ module.exports = {
     Atomics: false,
     SharedArrayBuffer: false,
     globalThis: false,
-    FinalizationGroup: false,
+    FinalizationRegistry: false,
     WeakRef: false,
     queueMicrotask: false,
   },
