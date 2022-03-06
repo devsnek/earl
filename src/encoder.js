@@ -15,8 +15,8 @@ const {
   // REFERENCE_EXT,
   // PORT_EXT,
   // PID_EXT,
-  // SMALL_TUPLE_EXT,
-  // LARGE_TUPLE_EXT,
+  SMALL_TUPLE_EXT,
+  LARGE_TUPLE_EXT,
   NIL_EXT,
   // STRING_EXT,
   LIST_EXT,
@@ -152,15 +152,13 @@ class Encoder {
     }
 
     if (Array.isArray(value)) {
-      const { length } = value;
-
-      if (length === 0) {
+      if (array.length === 0) {
         this.write8(NIL_EXT);
         return;
       }
 
       this.write8(LIST_EXT);
-      this.write32(length);
+      this.write32(array.length);
 
       value.forEach((v) => {
         this.pack(v);
@@ -186,6 +184,24 @@ class Encoder {
     }
 
     throw new Error('could not pack value');
+  }
+
+  packTuple(array) {
+    if (!Array.isArray(array)) {
+      throw new Error('could not pack value');
+    }
+
+    if (array.length > 255) {
+      this.write8(LARGE_TUPLE_EXT);
+      this.write32(array.length);
+    } else {
+      this.write8(SMALL_TUPLE_EXT);
+      this.write8(array.length);
+    }
+
+    array.forEach((v) => {
+      this.pack(v);
+    });
   }
 }
 

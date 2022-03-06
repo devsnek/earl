@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "JavaScript library for Erlang External Term Format",
   "main": "src/index.js",
-  "dependencies": {},
   "devDependencies": {
-    "@devsnek/fuzzy": "^2.0.2",
+    "@devsnek/fuzzy": "github:devsnek/fuzzy",
     "babel-eslint": "^10.1.0",
     "erlpack": "github:discordapp/erlpack",
     "eslint": "^6.1.0",
