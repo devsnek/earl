@@ -2,7 +2,7 @@
 
 const Encoder = require('./encoder');
 const Decoder = require('./decoder');
-const { Atom } = require('./atom');
+const { tuple, Reference, Pid, ImproperList } = require('./special');
 
 module.exports = {
   pack: (v) => {
@@ -15,9 +15,24 @@ module.exports = {
     encoder.packTuple(v);
     return encoder.buffer.subarray(0, encoder.offset);
   },
-  unpack: (v, { bigintToString = false, atomToString = true } = {}) => {
-    const decoder = new Decoder(v, { bigintToString, atomToString });
-    return decoder.unpack();
+  unpack: (
+    v,
+    {
+      bigintToString = false,
+      atomToString = true,
+      mapToObject = true,
+      returnSize = false,
+    } = {},
+  ) => {
+    const decoder = new Decoder(v, { bigintToString, atomToString, mapToObject });
+    const value = decoder.unpack();
+    if (returnSize) {
+      return { value, size: decoder.offset };
+    }
+    return value;
   },
-  Atom,
+  tuple,
+  Reference,
+  Pid,
+  ImproperList,
 };

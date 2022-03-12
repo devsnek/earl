@@ -1,6 +1,6 @@
 'use strict';
 
-const { RegisteredAtom } = require('./atom');
+const { Tuple, Reference, Pid, ImproperList } = require('./special');
 
 const {
   FORMAT_VERSION,
@@ -15,6 +15,7 @@ const {
   // REFERENCE_EXT,
   // PORT_EXT,
   // PID_EXT,
+  NEW_PID_EXT,
   SMALL_TUPLE_EXT,
   LARGE_TUPLE_EXT,
   NIL_EXT,
@@ -25,7 +26,7 @@ const {
   LARGE_BIG_EXT,
   // NEW_FUN_EXT,
   // EXPORT_EXT,
-  // NEW_REFERENCE_EXT,
+  NEWER_REFERENCE_EXT,
   SMALL_ATOM_EXT,
   SMALL_ATOM_UTF8_EXT,
   MAP_EXT,
@@ -151,6 +152,11 @@ class Encoder {
       return;
     }
 
+    if (value instanceof Tuple) {
+      this.packTuple(value);
+      return;
+    }
+
     if (Array.isArray(value)) {
       if (value.length === 0) {
         this.write8(NIL_EXT);
@@ -168,23 +174,59 @@ class Encoder {
       return;
     }
 
-    if (value instanceof RegisteredAtom) {
-      this.appendAtom(value.name);
+    if (value instanceof ImproperList) {
+      this.write8(LIST_EXT);
+      this.write32(value.head.length);
+      value.head.forEach((v) => {
+        this.pack(v);
+      });
+      this.pack(value.tail);
+      return;
+    }
+
+    if (typeof value === 'symbol') {
+      this.appendAtom(value.description);
+      return;
+    }
+
+    if (value instanceof Reference) {
+      this.write8(NEWER_REFERENCE_EXT);
+      this.write16(value.id.length);
+      this.appendAtom(value.node);
+      this.write32(value.creation);
+      value.id.forEach((v) => {
+        this.write32(v);
+      });
+      return;
+    }
+
+    if (value instanceof Pid) {
+      this.write8(NEW_PID_EXT);
+      this.appendAtom(value.node);
+      this.write32(value.id);
+      this.write32(value.serial);
+      this.write32(value.creation);
+      return;
+    }
+
+    if (value instanceof Map) {
+      this.write8(MAP_EXT);
+      this.write32(value.size);
+      value.forEach((v, k) => {
+        this.pack(k);
+        this.pack(v);
+      });
       return;
     }
 
     if (typeof value === 'object') {
       this.write8(MAP_EXT);
-
       const properties = Object.keys(value);
-
       this.write32(properties.length);
-
       properties.forEach((p) => {
         this.pack(p);
         this.pack(value[p]);
       });
-
       return;
     }
 

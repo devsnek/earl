@@ -164,7 +164,7 @@ const value = () => random({
 }
 
 {
-  const packed = earl.pack(earl.Atom('hello'));
+  const packed = earl.pack(Symbol('hello'));
 
   deepStrictEqual(packed, new Uint8Array([
     FORMAT_VERSION,
@@ -181,7 +181,7 @@ const value = () => random({
 }
 
 {
-  const packed = earl.pack(earl.Atom('a🧪b'));
+  const packed = earl.pack(Symbol('a🧪b'));
 
   deepStrictEqual(packed, new Uint8Array([
     FORMAT_VERSION,
@@ -197,8 +197,6 @@ const value = () => random({
 
   deepStrictEqual(earl.unpack(packed), 'a🧪b');
 }
-
-deepStrictEqual(earl.Atom('hello'), earl.Atom('hello'));
 
 // Fuzz testing
 for (let i = 0; i < 10000; i += 1) {

@@ -22,7 +22,7 @@ const {
   BINARY_EXT,
   SMALL_BIG_EXT,
   LARGE_BIG_EXT,
-  // NEW_FUN_EXT,
+  NEW_FUN_EXT,
   // EXPORT_EXT,
   // NEW_REFERENCE_EXT,
   NEWER_REFERENCE_EXT,
@@ -32,15 +32,11 @@ const {
   // FUN_EXT,
   // COMPRESSED,
 } = require('./constants');
-const { Atom } = require('./atom');
+const { Reference, Pid, ImproperList } = require('./special');
 
 const textDecoder = new TextDecoder();
 
 const processAtom = (atom, atomToString) => {
-  if (!atom) {
-    return undefined;
-  }
-
   if (atom === 'nil' || atom === 'null') {
     return null;
   }
@@ -54,13 +50,16 @@ const processAtom = (atom, atomToString) => {
   }
 
   if (atomToString) {
+    if (!atom) {
+      return undefined;
+    }
     return atom;
   }
-  return Atom(atom);
+  return Symbol(atom);
 };
 
 module.exports = class Decoder {
-  constructor(buffer, { bigintToString, atomToString } = {}) {
+  constructor(buffer, { bigintToString, atomToString, mapToObject } = {}) {
     if (ArrayBuffer.isView(buffer)) {
       this.buffer = buffer;
       this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -72,10 +71,11 @@ module.exports = class Decoder {
 
     this.bigintToString = bigintToString;
     this.atomToString = atomToString;
+    this.mapToObject = mapToObject;
 
     const version = this.read8();
     if (version !== FORMAT_VERSION) {
-      throw new Error('invalid version header');
+      throw new Error(`invalid version header ${version}`);
     }
   }
 
@@ -175,13 +175,19 @@ module.exports = class Decoder {
     return v;
   }
 
-  decodeAtom(type) {
+  decodeAtom(type, atomToString) {
     type = type ?? this.read8();
     if (type === SMALL_ATOM_EXT || type === SMALL_ATOM_UTF8_EXT) {
-      return processAtom(this.readString(this.read8()), this.atomToString);
+      return processAtom(
+        this.readString(this.read8()),
+        atomToString ?? this.atomToString,
+      );
     }
     if (type === ATOM_EXT || type === ATOM_UTF8_EXT) {
-      return processAtom(this.readString(this.read16()), this.atomToString);
+      return processAtom(
+        this.readString(this.read16()),
+        atomToString ?? this.atomToString,
+      );
     }
     throw new RangeError(`unknown atom type ${type}`);
   }
@@ -217,16 +223,27 @@ module.exports = class Decoder {
       case LIST_EXT: {
         const length = this.read32();
         const array = this.decodeArray(length);
-        if (this.read8() !== NIL_EXT) {
-          throw new Error('expected tail marker after list');
+        if (this.buffer[this.offset] === NIL_EXT) {
+          this.read8();
+          return array;
         }
-        return array;
+        const tail = this.unpack();
+        return new ImproperList(array, tail);
       }
       case MAP_EXT: {
         const length = this.read32();
-        const map = {};
+
+        if (this.mapToObject) {
+          const map = {};
+          for (let i = 0; i < length; i += 1) {
+            map[this.unpack()] = this.unpack();
+          }
+          return map;
+        }
+
+        const map = new Map();
         for (let i = 0; i < length; i += 1) {
-          map[this.unpack()] = this.unpack();
+          map.set(this.unpack(), this.unpack());
         }
         return map;
       }
@@ -243,24 +260,44 @@ module.exports = class Decoder {
         return this.decodeBigInt(digits);
       }
       case NEW_PID_EXT:
-        return {
-          node: this.decodeAtom(),
-          id: this.read32(),
-          serial: this.read32(),
-          creation: this.read32(),
-        };
+        return new Pid(
+          this.decodeAtom(null, false).description,
+          this.read32(),
+          this.read32(),
+          this.read32(),
+        );
       case NEWER_REFERENCE_EXT: {
         const len = this.read16();
-        const node = this.decodeAtom();
+        const node = this.decodeAtom(null, false).description;
         const creation = this.read32();
         const id = [];
         for (let i = 0; i < len; i += 1) {
           id.push(this.read32());
         }
+        return new Reference(node, creation, id);
+      }
+      case NEW_FUN_EXT: {
+        const size = this.read32();
+        const arity = this.read8();
+        const unique = [this.read32(), this.read32(), this.read32(), this.read32()];
+        const index = this.read32();
+        const numFree = this.read32();
+        const module = this.unpack();
+        const oldIndex = this.unpack();
+        const oldUniq = this.unpack();
+        const pid = this.unpack();
+        const freeVars = Array.from({ length: numFree }, () => this.unpack());
         return {
-          node,
-          creation,
-          id,
+          size,
+          arity,
+          unique,
+          index,
+          numFree,
+          module,
+          oldIndex,
+          oldUniq,
+          pid,
+          freeVars,
         };
       }
       default:
