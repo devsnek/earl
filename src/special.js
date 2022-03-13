@@ -14,6 +14,14 @@ class Pid {
     this.creation = creation;
   }
 
+  eq(other) {
+    return other instanceof Pid
+      && other.node === this.node
+      && other.id === this.id
+      && other.serial === this.serial
+      && other.creation === this.creation;
+  }
+
   [Symbol.for('nodejs.util.inspect.custom')]() {
     return `#Pid<${this.node}.${this.id}.${this.serial}.${this.creation}>`;
   }
@@ -24,6 +32,13 @@ class Reference {
     this.node = node;
     this.creation = creation;
     this.id = id;
+  }
+
+  eq(other) {
+    return other instanceof Reference
+      && other.node === this.node
+      && other.creation === this.creation
+      && `${other.id}` === `${this.id}`;
   }
 
   [Symbol.for('nodejs.util.inspect.custom')]() {
